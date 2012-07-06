@@ -77,22 +77,16 @@ void tty_poll(tty_t *tty, int epfd, int op)
     }
 }
 
-void tty_read(tty_t *t)
+int tty_read(tty_t *t, void *buf, size_t nbytes)
 {
-    char buf[BUFSIZ];
     int ret;
 
-    ret = read(t->fd, buf, BUFSIZ);
+    ret = read(t->fd, buf, nbytes);
     printf("read %d\n", ret);
     if (ret == -1) {
         perror("read");
         exit(EXIT_FAILURE);
     }
 
-    /* tty_put(t, buf, ret); */
-    ret = write(STDOUT_FILENO, buf, ret);
-    if (ret == -1) {
-        perror("write");
-        exit(EXIT_FAILURE);
-    }
+    return ret;
 }
