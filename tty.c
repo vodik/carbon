@@ -13,6 +13,7 @@ struct tty {
     pid_t pid;
     int fd;
     struct epoll_event event;
+    const tty_events_t *events;
 };
 
 tty_t *tty_new(shellfn shell)
@@ -55,8 +56,12 @@ tty_t *tty_new(shellfn shell)
             perror("ioctl");
             exit(EXIT_FAILURE);
         }
+        close(slavefd);
+        close(masterfd);
         shell();
-        exit(-1); /* shouldn't get here */
+
+        /* shouldn't get here, shell should exit */
+        exit(0);
         break;
     }
 
@@ -66,7 +71,30 @@ tty_t *tty_new(shellfn shell)
     return tty;
 }
 
-void tty_poll(tty_t *tty, int epfd, int op)
+void tty_events(tty_t *tty, const tty_events_t *events)
+{
+    tty->events = events;
+}
+
+int tty_pid(tty_t *tty)
+{
+    return tty->pid;
+}
+
+void tty_resize(int x, int y)
+{
+    struct winsize w = {
+        .ws_row = x;
+        .ws_col = y;
+    };
+
+    if (ioctl(tty->fd, TIOCSWINSZ, &w) == -1) {
+        fprintf(stderr, "couldn't set terminal size: %s\n", stderror(errno));
+        exit(EXIT_FAILURE);
+    }
+}
+
+void tty_poll_ctl(tty_t *tty, int epfd, int op)
 {
     tty->event.events = EPOLLIN | EPOLLET;
     tty->event.data.ptr = tty;
@@ -90,3 +118,5 @@ int tty_read(tty_t *t, void *buf, size_t nbytes)
 
     return ret;
 }
+
+// vim: et:sts=4:sw=4:cino=(0
