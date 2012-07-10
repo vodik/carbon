@@ -4,6 +4,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdbool.h>
+#include <string.h>
+#include <errno.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>
@@ -81,15 +83,15 @@ int tty_pid(tty_t *tty)
     return tty->pid;
 }
 
-void tty_resize(int x, int y)
+void tty_resize(tty_t *tty, int rows, int cols)
 {
     struct winsize w = {
-        .ws_row = x;
-        .ws_col = y;
+        .ws_row = rows,
+        .ws_col = cols
     };
 
     if (ioctl(tty->fd, TIOCSWINSZ, &w) == -1) {
-        fprintf(stderr, "couldn't set terminal size: %s\n", stderror(errno));
+        fprintf(stderr, "couldn't set terminal size: %s\n", strerror(errno));
         exit(EXIT_FAILURE);
     }
 }
