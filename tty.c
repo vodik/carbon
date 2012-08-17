@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdbool.h>
+#include <string.h>
 #include <errno.h>
 #include <err.h>
 #include <unistd.h>
@@ -15,6 +16,7 @@ struct tty {
     pid_t pid;
     int fd;
     struct epoll_event event;
+    const tty_events_t *events;
 };
 
 tty_t *tty_new(shellfn shell)
@@ -48,6 +50,9 @@ tty_t *tty_new(shellfn shell)
         dup2(slavefd, STDERR_FILENO);
         if (ioctl(slavefd, TIOCSCTTY, NULL) == -1)
             err(EXIT_FAILURE, "ioctl");
+
+        close(slavefd);
+        close(masterfd);
         shell();
         errx(EXIT_FAILURE, "shellfn didn't exit");
         break;
@@ -59,7 +64,30 @@ tty_t *tty_new(shellfn shell)
     return tty;
 }
 
-void tty_poll(tty_t *tty, int epfd, int op)
+void tty_events(tty_t *tty, const tty_events_t *events)
+{
+    tty->events = events;
+}
+
+int tty_pid(tty_t *tty)
+{
+    return tty->pid;
+}
+
+void tty_resize(tty_t *tty, int rows, int cols)
+{
+    struct winsize w = {
+        .ws_row = rows,
+        .ws_col = cols
+    };
+
+    if (ioctl(tty->fd, TIOCSWINSZ, &w) == -1) {
+        fprintf(stderr, "couldn't set terminal size: %s\n", strerror(errno));
+        exit(EXIT_FAILURE);
+    }
+}
+
+void tty_poll_ctl(tty_t *tty, int epfd, int op)
 {
     tty->event.events = EPOLLIN | EPOLLET;
     tty->event.data.ptr = tty;
@@ -68,18 +96,16 @@ void tty_poll(tty_t *tty, int epfd, int op)
         err(EXIT_FAILURE, "epoll_ctl");
 }
 
-void tty_read(tty_t *t)
+int tty_read(tty_t *t, void *buf, size_t nbytes)
 {
-    char buf[BUFSIZ];
     int ret;
 
-    ret = read(t->fd, buf, BUFSIZ);
+    ret = read(t->fd, buf, nbytes);
     printf("read %d\n", ret);
     if (ret == -1)
         err(EXIT_FAILURE, "read");
 
-    /* tty_put(t, buf, ret); */
-    ret = write(STDOUT_FILENO, buf, ret);
-    if (ret == -1)
-        err(EXIT_FAILURE, "write");
+    return ret;
 }
+
+// vim: et:sts=4:sw=4:cino=(0
