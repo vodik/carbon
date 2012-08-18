@@ -101,7 +101,6 @@ int tty_read(tty_t *t, void *buf, size_t nbytes)
     int ret;
 
     ret = read(t->fd, buf, nbytes);
-    printf("read %d\n", ret);
     if (ret == -1)
         err(EXIT_FAILURE, "read");
 

@@ -2,6 +2,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include "unicode.h"
 
 buffer_t *buffer_new(unsigned rows, unsigned cols)
 {
@@ -11,12 +12,13 @@ buffer_t *buffer_new(unsigned rows, unsigned cols)
     buf->cols = cols;
     buf->x = buf->y = 0;
     buf->lines = malloc(sizeof(struct line *) * rows);
+    buf->u.state = UTF8_START;
 
     unsigned i;
     for (i = 0; i < rows; ++i) {
         buf->lines[i] = malloc(sizeof(struct line));
         struct line *line = buf->lines[i];
-        line->ch = malloc(cols);
+        line->cp = malloc(sizeof(uint32_t) * cols);
     }
 
     return buf;
@@ -35,9 +37,16 @@ void buffer_newline(buffer_t *buf)
 void buffer_write(buffer_t *buf, const char *msg, size_t len)
 {
     unsigned i;
+    enum utf8_state state;
 
     for (i = 0; i < len; i++) {
-        switch (msg[i]) {
+        state = utf8_feed(&buf->u, msg[i]);
+
+        printf("state: %d\n", state);
+        if (state != UTF8_ACCEPT)
+            continue;
+
+        switch (buf->u.c) {
         case '\n':
             buffer_newline(buf);
             break;
@@ -48,7 +57,7 @@ void buffer_write(buffer_t *buf, const char *msg, size_t len)
             /* TODO */
             break;
         default:
-            buf->lines[buf->y]->ch[buf->x] = msg[i];
+            buf->lines[buf->y]->cp[buf->x] = buf->u.c;
             if (++buf->x > buf->cols - 1) {
                 buffer_newline(buf);
             }
@@ -58,9 +67,12 @@ void buffer_write(buffer_t *buf, const char *msg, size_t len)
 
 void dump_buffer(buffer_t *buf)
 {
-    unsigned i = buf->rows;
-    for (i = 0; i < buf->rows; ++i) {
-        printf("|%-10s|\n", buf->lines[i]->ch);
+    unsigned i, j;
+    for (i = 0; i < 8; ++i) {
+        printf("|");
+        for (j = 0; j < buf->cols; ++j)
+            printf("%c", (char)buf->lines[i]->cp[j]);
+        printf("|\n");
     }
 }
 

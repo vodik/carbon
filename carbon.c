@@ -19,6 +19,7 @@ tty_t *tty;
 
 cairo_surface_t *surface;
 term_t *term;
+buffer_t *buff;
 
 static void sigchld();
 static void shell(void);
@@ -55,12 +56,17 @@ void run(void)
             int ret;
 
             ret = tty_read(events[i].data.ptr, buf, BUFSIZ);
+            printf("read %d\n", ret);
             if (ret == -1) {
                 perror("tty_read");
                 exit(EXIT_FAILURE);
             }
 
             buf[ret] = '\0';
+            buffer_write(buff, buf, ret);
+            dump_buffer(buff);
+
+
             term_print(term, buf);
             cairo_surface_write_to_png(surface, "terminal.png");
         }
@@ -78,6 +84,8 @@ static const tty_events_t events = {
 
 int main(void)
 {
+    buff = buffer_new(20, 20);
+
     epfd = epoll_create1(0);
     if (epfd == -1) {
         perror("epoll_create");

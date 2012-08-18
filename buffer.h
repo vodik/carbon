@@ -5,6 +5,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "unicode.h"
+
 typedef struct buffer buffer_t;
 
 struct font_attr {
@@ -24,13 +26,14 @@ struct cell {
 
 
 struct line {
-    char* ch;
+    uint32_t *cp;
     struct line *next, *prev;
 };
 
 struct buffer {
     unsigned rows, cols;
     unsigned x, y;
+    struct utf8_t u;
     struct line **lines;
 };
 
@@ -53,6 +56,8 @@ struct buffer {
 /*     unsigned cursor_x, cursor_y; */
 /* }; */
 
+buffer_t *buffer_new(unsigned rows, unsigned cols);
 void buffer_write(buffer_t *buf, const char *msg, size_t len);
+void dump_buffer(buffer_t *buf);
 
 #endif
