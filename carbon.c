@@ -1,8 +1,13 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdbool.h>
+#include <string.h>
+#include <errno.h>
+#include <err.h>
 #include <unistd.h>
+#include <fcntl.h>
 #include <signal.h>
+#include <sys/ioctl.h>
 #include <sys/epoll.h>
 #include <sys/wait.h>
 #include <cairo.h>
@@ -11,14 +16,9 @@
 #include "term.h"
 #include "buffer.h"
 
-const unsigned width  = 240;
-const unsigned height = 240;
-
 int epfd;
-tty_t *tty;
 
-cairo_surface_t *surface;
-term_t *term;
+tty_t *tty;
 buffer_t *buff;
 
 static void sigchld();
@@ -45,16 +45,17 @@ void sigchld()
 
 void shell(void)
 {
-    /* char *args[] = { getenv("SHELL"), "-i", NULL }; */
-    char *args[] = { "/bin/bash", "-i", NULL };
-    /* putenv("TERM=carbon"); */
-    putenv("TERM=dumb");
+    /* putenv("TERM=dumb"); */
+
+    char *args[] = { getenv("SHELL"), "-i", NULL };
+    /* char *args[] = { "/bin/bash", "-i", NULL }; */
     execv(args[0], args);
 }
 
 void dump_buffer(buffer_t *buf)
 {
     unsigned i, j;
+    printf("\033[H\033[2J");
     for (i = 0; i < buf->rows; ++i) {
         printf("|");
         for (j = 0; j < buf->cols; ++j) {
@@ -67,8 +68,9 @@ void dump_buffer(buffer_t *buf)
             else
                 printf(COLOR_BLUE "." COLOR_RESET);
         }
-        printf("|\n");
+        printf("|");
     }
+    printf("---");
 }
 
 void run(void)
@@ -83,7 +85,7 @@ void run(void)
             int ret;
 
             ret = tty_read(events[i].data.ptr, buf, BUFSIZ);
-            printf("read %d\n", ret);
+            printf("read: %d\n", ret);
             if (ret == -1) {
                 perror("tty_read");
                 exit(EXIT_FAILURE);
@@ -91,11 +93,8 @@ void run(void)
 
             buf[ret] = '\0';
             buffer_write(buff, buf, ret);
+
             dump_buffer(buff);
-
-
-            term_print(term, buf);
-            cairo_surface_write_to_png(surface, "terminal.png");
         }
     }
 }
@@ -111,7 +110,14 @@ static const tty_events_t events = {
 
 int main(void)
 {
-    buff = buffer_new(20, 20);
+    struct winsize w;
+    int fd = open("/dev/tty", O_RDONLY);
+    if (ioctl(fd, TIOCGWINSZ, &w) == -1) {
+        fprintf(stderr, "couldn't get terminal size: %s\n", strerror(errno));
+        exit(EXIT_FAILURE);
+    }
+
+    signal(SIGCHLD, sigchld);
 
     epfd = epoll_create1(0);
     if (epfd == -1) {
@@ -127,12 +133,15 @@ int main(void)
 
     tty_events(tty, &events);
 
-    surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, width, height);
-    term = term_new(surface, "Monospace", 12);
-
-    signal(SIGCHLD, sigchld);
+    buff = buffer_new(w.ws_row - 1, w.ws_col - 2);
+    if (!buff) {
+        perror("buff_new");
+        exit(EXIT_FAILURE);
+    }
 
     tty_poll_ctl(tty, epfd, EPOLL_CTL_ADD);
+
+    printf("running buffer %dx%d\n", buff->rows, buff->cols);
     run();
 
     return 0;
