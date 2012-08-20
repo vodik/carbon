@@ -7,54 +7,54 @@
 
 #include "unicode.h"
 
+/* TODO: set to something sane */
+#define ESC_MAX 6
+
 typedef struct buffer buffer_t;
 
-struct font_attr {
-    size_t ref;
-
-    uint8_t fg[3];
-    uint8_t bg[3];
-    bool bold      : 1;
-    bool underline : 1;
-    bool inverse   : 1;
+enum esc_state {
+    ESC_WAITING,
+    ESC_START,
+    ESC_ACCEPT,
+    ESC_EXPECT,
+    ESC_REJECT
 };
 
-struct cell {
-    struct font_attr *attr;
-    char ch;
-};
+/* struct font_attr { */
+/*     uint8_t fg; */
+/*     uint8_t bg; */
+/*     bool bold      : 1; */
+/*     bool underline : 1; */
+/*     bool inverse   : 1; */
+/* }; */
+
+/* struct cell { */
+/*     struct font_attr *attr; */
+/*     char ch; */
+/* }; */
 
 
 struct line {
-    uint32_t *cp;
-    struct line *next, *prev;
+    unsigned len;
+    uint32_t *g;
+    struct line *up, *down;
 };
 
 struct buffer {
     unsigned rows, cols;
     unsigned x, y;
-    struct utf8_t u;
     struct line **lines;
+
+    struct {
+        enum esc_state state;
+        const struct esc_data_t *op;
+
+        char mode;
+        int narg;
+        int args[ESC_MAX];
+    } esc;
+    struct utf8_t u;
 };
-
-/* struct line { */
-/*     size_t size; */
-/*     struct cell *cells; */
-
-/*     struct line *next; */
-/*     struct line *prev; */
-/* }; */
-
-/* struct buffer { */
-/*     struct font_attr defaults; */
-/*     struct font_attr *attr; */
-
-/*     struct line **lines; */
-/*     struct line *line; */
-
-/*     unsigned rows, cols; */
-/*     unsigned cursor_x, cursor_y; */
-/* }; */
 
 buffer_t *buffer_new(unsigned rows, unsigned cols);
 void buffer_write(buffer_t *buf, const char *msg, size_t len);
