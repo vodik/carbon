@@ -64,10 +64,12 @@ void dump_buffer(buffer_t *buf)
 
             if (cp == 033)
                 printf(COLOR_BOLD COLOR_RED "!" COLOR_RESET);
+            else if (cp == 0)
+                printf(COLOR_BLUE "." COLOR_RESET);
             else if (cp > 0x1f && cp < 0x7f)
                 printf("%c", (char)cp);
             else
-                printf(COLOR_BLUE "." COLOR_RESET);
+                printf(COLOR_YELLOW "*" COLOR_RESET);
         }
         printf("|");
     }
