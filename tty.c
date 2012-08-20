@@ -107,4 +107,15 @@ int tty_read(tty_t *t, void *buf, size_t nbytes)
     return ret;
 }
 
+int tty_write(tty_t *t, void *buf, size_t nbytes)
+{
+    int ret;
+
+    ret = write(t->fd, buf, nbytes);
+    if (ret == -1)
+        err(EXIT_FAILURE, "write");
+
+    return ret;
+}
+
 // vim: et:sts=4:sw=4:cino=(0

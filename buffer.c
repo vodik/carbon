@@ -5,7 +5,7 @@
 #include <ctype.h>
 #include "unicode.h"
 
-#define MAX(x, max) \
+#define LIMIT(x, max) \
 	__extension__ ({ \
 		typeof(x) _x = (x); \
 		typeof(max) _max = (max); \
@@ -68,7 +68,7 @@ void buffer_newline(buffer_t *buf)
 {
     /* TODO: scroll */
     buf->x = 0;
-    buf->y = MAX(buf->y + 1, buf->rows);
+    buf->y = LIMIT(buf->y + 1, buf->rows - 1);
 }
 
 static enum esc_state esc_feed(buffer_t *b, char c)
@@ -143,9 +143,8 @@ void buffer_write(buffer_t *buf, const char *msg, size_t len)
             break;
         default:
             buf->lines[buf->y]->g[buf->x] = buf->u.c;
-            if (++buf->x > buf->cols - 1) {
+            if (++buf->x > buf->cols - 1)
                 buffer_newline(buf);
-            }
         }
     }
 }

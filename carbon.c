@@ -45,10 +45,9 @@ void sigchld()
 
 void shell(void)
 {
-    /* putenv("TERM=dumb"); */
+    putenv("TERM=dumb");
 
-    char *args[] = { getenv("SHELL"), "-i", NULL };
-    /* char *args[] = { "/bin/bash", "-i", NULL }; */
+    char *args[] = { "/bin/bash", "-i", NULL };
     execv(args[0], args);
 }
 
@@ -57,11 +56,13 @@ void dump_buffer(buffer_t *buf)
     unsigned i, j;
     printf("\033[H\033[2J");
     for (i = 0; i < buf->rows; ++i) {
-        printf("|");
-        for (j = 0; j < buf->cols; ++j) {
-            uint32_t cp = buf->lines[i]->g[j];
+        struct line *line = buf->lines[i];
 
-            if (cp == 0x33)
+        printf("|");
+        for (j = 0; j < line->len; ++j) {
+            uint32_t cp = line->g[j];
+
+            if (cp == 033)
                 printf(COLOR_BOLD COLOR_RED "!" COLOR_RESET);
             else if (cp > 0x1f && cp < 0x7f)
                 printf("%c", (char)cp);
@@ -70,7 +71,8 @@ void dump_buffer(buffer_t *buf)
         }
         printf("|");
     }
-    printf("---");
+    printf("> ");
+    fflush(stdout);
 }
 
 void run(void)
@@ -84,17 +86,29 @@ void run(void)
             char buf[BUFSIZ];
             int ret;
 
-            ret = tty_read(events[i].data.ptr, buf, BUFSIZ);
-            printf("read: %d\n", ret);
-            if (ret == -1) {
-                perror("tty_read");
-                exit(EXIT_FAILURE);
+            if (events[i].data.ptr == 0) {
+                ret = read(0, buf, BUFSIZ);
+                if (ret == -1) {
+                    perror("read");
+                    exit(EXIT_FAILURE);
+                }
+
+                buf[ret++] = '\r';
+                buf[ret] = '\0';
+                tty_write(tty, buf, ret);
+            } else {
+                ret = tty_read(events[i].data.ptr, buf, BUFSIZ);
+                printf("read: %d\n", ret);
+                if (ret == -1) {
+                    perror("tty_read");
+                    exit(EXIT_FAILURE);
+                }
+
+                buf[ret] = '\0';
+                buffer_write(buff, buf, ret);
+
+                dump_buffer(buff);
             }
-
-            buf[ret] = '\0';
-            buffer_write(buff, buf, ret);
-
-            dump_buffer(buff);
         }
     }
 }
@@ -125,7 +139,7 @@ int main(void)
         exit(EXIT_FAILURE);
     }
 
-    tty_t *tty = tty_new(shell);
+    tty = tty_new(shell);
     if (!tty) {
         perror("tty_new");
         exit(EXIT_FAILURE);
@@ -140,6 +154,14 @@ int main(void)
     }
 
     tty_poll_ctl(tty, epfd, EPOLL_CTL_ADD);
+
+    struct epoll_event event = {
+        .events = EPOLLIN | EPOLLET,
+        .data = { .ptr = 0 }
+    };
+
+    if (epoll_ctl(epfd, EPOLL_CTL_ADD, 0, &event) == -1)
+        err(EXIT_FAILURE, "epoll_ctl");
 
     printf("running buffer %dx%d\n", buff->rows, buff->cols);
     run();

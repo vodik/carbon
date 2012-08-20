@@ -18,5 +18,6 @@ void tty_resize(tty_t *tty, int rows, int cols);
 
 void tty_poll_ctl(tty_t *tty, int epfd, int op);
 int tty_read(tty_t *t, void *buf, size_t nbytes);
+int tty_write(tty_t *t, void *buf, size_t nbytes);
 
 #endif
