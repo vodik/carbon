@@ -72,7 +72,6 @@ void dump_buffer(buffer_t *buf)
         printf("|");
     }
     printf("> ");
-    fflush(stdout);
 }
 
 void run(void)
@@ -124,6 +123,8 @@ static const tty_events_t events = {
 
 int main(void)
 {
+    setbuf(stdout, NULL);
+
     struct winsize w;
     int fd = open("/dev/tty", O_RDONLY);
     if (ioctl(fd, TIOCGWINSZ, &w) == -1) {

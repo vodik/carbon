@@ -83,6 +83,7 @@ static enum esc_state esc_feed(buffer_t *b, char c)
         default:
             break;
         }
+        b->esc.narg = 0;
         b->esc.state = b->esc.op ? ESC_EXPECT : ESC_WAITING;
         break;
     case ESC_EXPECT:
