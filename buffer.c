@@ -15,13 +15,6 @@
 #define ESC  033
 #define CSI  '['
 
-#define COLOR_RESET    "\033[0m"
-#define COLOR_BOLD     "\033[1m"
-#define COLOR_RED      "\033[31m"
-#define COLOR_GREEN    "\033[32m"
-#define COLOR_YELLOW   "\033[33m"
-#define COLOR_BLUE     "\033[34m"
-
 enum esc_type {
     ESC_CSI,
     ESC_INVALID
@@ -252,25 +245,6 @@ static void esc_applyCSI(buffer_t *b)
         break;
     default:
         break;
-    }
-}
-
-void dump_buffer(buffer_t *buf)
-{
-    unsigned i, j;
-    for (i = 0; i < buf->rows; ++i) {
-        printf("|");
-        for (j = 0; j < buf->cols; ++j) {
-            uint32_t cp = buf->lines[i]->g[j];
-
-            if (cp == 0x33)
-                printf(COLOR_BOLD COLOR_RED "!" COLOR_RESET);
-            else if (cp > 0x1f && cp < 0x7f)
-                printf("%c", (char)cp);
-            else
-                printf(COLOR_BLUE "." COLOR_RESET);
-        }
-        printf("|\n");
     }
 }
 

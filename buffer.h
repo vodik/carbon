@@ -58,6 +58,5 @@ struct buffer {
 
 buffer_t *buffer_new(unsigned rows, unsigned cols);
 void buffer_write(buffer_t *buf, const char *msg, size_t len);
-void dump_buffer(buffer_t *buf);
 
 #endif
