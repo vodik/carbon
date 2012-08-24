@@ -134,8 +134,6 @@ int main(void)
         exit(EXIT_FAILURE);
     }
 
-    signal(SIGCHLD, sigchld);
-
     epfd = epoll_create1(0);
     if (epfd == -1) {
         perror("epoll_create");
@@ -148,6 +146,7 @@ int main(void)
         exit(EXIT_FAILURE);
     }
 
+    signal(SIGCHLD, sigchld);
     tty_events(tty, &events);
 
     buff = buffer_new(w.ws_row - 1, w.ws_col - 2);
