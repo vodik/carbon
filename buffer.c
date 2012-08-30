@@ -6,11 +6,12 @@
 #include <ctype.h>
 #include "unicode.h"
 
-#define LIMIT(x, max) \
+#define CLAMP(x, low, high) \
 	__extension__ ({ \
 		typeof(x) _x = (x); \
-		typeof(max) _max = (max); \
-		((_x > _max) ? _max : _x); \
+		typeof(low) _low = (low); \
+		typeof(high) _high = (high); \
+		((_x > _high) ? _high : ((_x < _low) ? _low : _x)); \
 	})
 
 #define ESC  033
@@ -145,6 +146,19 @@ static enum esc_state esc_feed(buffer_t *b, char c)
     return b->esc.state;
 }
 
+void buffer_move(buffer_t *buf, unsigned x, unsigned y)
+{
+    CLAMP(x, 0u, buf->cols - 1);
+	CLAMP(y, 0u, buf->rows - 1);
+	buf->x = x;
+	buf->y = y;
+}
+
+void buffer_tab(buffer_t *buf)
+{
+    unsigned spaces = 8 - buf->x % 8;
+    buffer_move(buf, buf->x + spaces, buf->y);
+}
 
 void buffer_write(buffer_t *buf, const char *msg, size_t len)
 {
@@ -179,7 +193,7 @@ void buffer_write(buffer_t *buf, const char *msg, size_t len)
             buf->x = 0;
             break;
         case '\t':
-            /* TODO */
+            buffer_tab(buf);
             break;
         default:
             buf->mapped[buf->y]->g[buf->x] = buf->u.c;
