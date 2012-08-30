@@ -2,6 +2,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <memory.h>
 #include <ctype.h>
 #include "unicode.h"
 
@@ -88,12 +89,9 @@ buffer_t *buffer_new(unsigned rows, unsigned cols)
     buf->rows = rows;
     buf->cols = cols;
     buf->x = buf->y = 0;
-    buf->u.state = UTF8_START;
 
-    buf->esc.state = ESC_WAITING;
-    buf->esc.op = NULL;
-    buf->esc.mode = 0;
-    buf->esc.narg = 0;
+    memset(&buf->u,   0, sizeof(buf->u));
+    memset(&buf->esc, 0, sizeof(buf->esc));
 
     buf->mapped = calloc(rows, sizeof(struct line_t *));
     buf->lines = alloc_scrollbuffer(rows + 100, cols);
@@ -105,11 +103,11 @@ buffer_t *buffer_new(unsigned rows, unsigned cols)
 void buffer_newline(buffer_t *buf)
 {
     buf->x = 0;
-    ++buf->y;
-    if (buf->y == buf->rows) {
+
+    if (buf->y + 1 == buf->rows)
         rotate_map(buf->mapped, buf->rows);
-        --buf->y;
-    }
+    else
+        ++buf->y;
 }
 
 static enum esc_state esc_feed(buffer_t *b, char c)
