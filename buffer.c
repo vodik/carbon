@@ -17,6 +17,9 @@
 #define ESC  033
 #define CSI  '['
 
+#define COLOR_RESET    "\033[0m"
+#define COLOR_RED      "\033[31m"
+
 enum esc_type {
     ESC_CSI,
     ESC_INVALID
@@ -91,8 +94,9 @@ buffer_t *buffer_new(unsigned rows, unsigned cols)
     buf->cols = cols;
     buf->x = buf->y = 0;
 
-    memset(&buf->u,   0, sizeof(buf->u));
-    memset(&buf->esc, 0, sizeof(buf->esc));
+    memset(&buf->u,    0, sizeof(buf->u));
+    memset(&buf->esc,  0, sizeof(buf->esc));
+    memset(&buf->attr, 0, sizeof(buf->attr));
 
     buf->mapped = calloc(rows, sizeof(struct line_t *));
     buf->lines = alloc_scrollbuffer(rows + 100, cols);
@@ -168,8 +172,10 @@ void buffer_write(buffer_t *buf, const char *msg, size_t len)
     for (i = 0; i < len; i++) {
         const char c = msg[i];
 
+        /* TODO: shitty hacky order */
         if (c == ESC && buf->esc.state == ESC_WAITING) {
             printf("WE FOUND SOMETHING ESCAPED!\n");
+            memset(&buf->esc,  0, sizeof(buf->esc));
             buf->esc.state = ESC_START;
             continue;
         }
@@ -196,7 +202,8 @@ void buffer_write(buffer_t *buf, const char *msg, size_t len)
             buffer_tab(buf);
             break;
         default:
-            buf->mapped[buf->y]->cell[buf->x].cp = buf->u.c;
+            buf->mapped[buf->y]->cell[buf->x].cp   = buf->u.c;
+            buf->mapped[buf->y]->cell[buf->x].attr = buf->attr;
             if (++buf->x > buf->cols - 1)
                 buffer_newline(buf);
         }
@@ -225,6 +232,7 @@ static enum esc_state esc_feedCSI(buffer_t *b, char c)
 /* static void esc_applyCSI(buffer_t *e, const buf_t *bufimpl, void *buf) */
 static void esc_applyCSI(buffer_t *b)
 {
+    unsigned temp;
     printf("TRYING TO ACCEPT THIS\n");
     switch(b->esc.mode) {
     /* insert [0] blank characters */
@@ -286,6 +294,13 @@ static void esc_applyCSI(buffer_t *b)
         break;
     /* set terminal attributes [] */
     case 'm':
+        /* HACK TASTIC */
+        temp = b->esc.args[b->esc.narg];
+        printf(COLOR_RED "COLOR: %d (@ %d)\n" COLOR_RESET, temp, b->esc.narg);
+        temp -= 30;
+        b->attr.fg = temp;
+        if (b->esc.narg)
+            b->attr.bold = b->esc.args[b->esc.narg - 1];
         break;
     /* ??? */
     case 'r':

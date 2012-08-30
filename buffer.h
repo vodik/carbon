@@ -29,7 +29,7 @@ struct font_attr {
 };
 
 struct cell_t {
-    struct font_attr *attr;
+    struct font_attr attr;
     uint32_t cp;
 };
 
@@ -44,6 +44,8 @@ struct buffer {
     unsigned x, y;
     struct line_t *lines;
     struct line_t **mapped;
+
+    struct font_attr attr;
 
     struct {
         enum esc_state state;

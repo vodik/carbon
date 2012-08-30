@@ -31,6 +31,17 @@ static void run(void);
 #define COLOR_GREEN    "\033[32m"
 #define COLOR_YELLOW   "\033[33m"
 #define COLOR_BLUE     "\033[34m"
+#define COLOR_MAGENTA  "\033[35m"
+#define COLOR_CYAN     "\033[36m"
+#define COLOR_WHITE    "\033[37m"
+
+#define CLAMP(x, low, high) \
+	__extension__ ({ \
+		typeof(x) _x = (x); \
+		typeof(low) _low = (low); \
+		typeof(high) _high = (high); \
+		((_x > _high) ? _high : ((_x < _low) ? _low : _x)); \
+	})
 
 void sigchld()
 {
@@ -51,6 +62,43 @@ void shell(void)
     execv(args[0], args);
 }
 
+void dump_cell(struct cell_t *cell)
+{
+    char c = (char)cell->cp;
+
+    bool dirty = false;
+    char ti[10] = "\033[";
+    char *p = ti + 2;
+
+    if (cell->attr.bold) {
+        *p++ = cell->attr.bold ? '1' : '0';
+        dirty = true;
+    }
+
+    if (cell->attr.fg > 0) {
+        if (dirty)
+            *p++ = ';';
+        *p++ = '3';
+        *p++ = CLAMP(cell->attr.fg, 0, 7) + '0';
+        dirty = true;
+    }
+
+    if (cell->attr.bg > 0) {
+        if (dirty)
+            *p++ = ';';
+        *p++ = '4';
+        *p++ = CLAMP(cell->attr.bg, 0, 7) + '0';
+        dirty = true;
+    }
+
+    if (dirty) {
+        *p++ = 'm';
+        *p++ = '\0';
+        printf("%s%c%s", ti, c, COLOR_RESET);
+    } else
+        printf("%c", c);
+}
+
 void dump_buffer(buffer_t *buf)
 {
     unsigned i, j;
@@ -67,7 +115,7 @@ void dump_buffer(buffer_t *buf)
             else if (cp == 0)
                 printf(COLOR_BLUE "." COLOR_RESET);
             else if (cp > 0x1f && cp < 0x7f)
-                printf("%c", (char)cp);
+                dump_cell(&line->cell[j]);
             else
                 printf(COLOR_YELLOW "*" COLOR_RESET);
         }
