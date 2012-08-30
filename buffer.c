@@ -39,7 +39,7 @@ static struct line_t *alloc_line(unsigned len)
 {
     struct line_t *line = malloc(sizeof(struct line_t));
     line->len = len;
-    line->g = calloc(len, sizeof(uint32_t));
+    line->cell = calloc(len, sizeof(struct cell_t));
     line->next = line->prev = NULL;
     return line;
 }
@@ -196,7 +196,7 @@ void buffer_write(buffer_t *buf, const char *msg, size_t len)
             buffer_tab(buf);
             break;
         default:
-            buf->mapped[buf->y]->g[buf->x] = buf->u.c;
+            buf->mapped[buf->y]->cell[buf->x].cp = buf->u.c;
             if (++buf->x > buf->cols - 1)
                 buffer_newline(buf);
         }

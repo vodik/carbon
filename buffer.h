@@ -20,23 +20,22 @@ enum esc_state {
     ESC_REJECT
 };
 
-/* struct font_attr { */
-/*     uint8_t fg; */
-/*     uint8_t bg; */
-/*     bool bold      : 1; */
-/*     bool underline : 1; */
-/*     bool inverse   : 1; */
-/* }; */
+struct font_attr {
+    uint8_t fg;
+    uint8_t bg;
+    bool bold      : 1;
+    bool underline : 1;
+    bool inverse   : 1;
+};
 
-/* struct cell { */
-/*     struct font_attr *attr; */
-/*     char ch; */
-/* }; */
-
+struct cell_t {
+    struct font_attr *attr;
+    uint32_t cp;
+};
 
 struct line_t {
     unsigned len;
-    uint32_t *g;
+    struct cell_t *cell;
     struct line_t *next, *prev;
 };
 

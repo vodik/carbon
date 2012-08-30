@@ -60,7 +60,7 @@ void dump_buffer(buffer_t *buf)
 
         printf("|");
         for (j = 0; j < line->len; ++j) {
-            uint32_t cp = line->g[j];
+            uint32_t cp = line->cell[j].cp;
 
             if (cp == 033)
                 printf(COLOR_BOLD COLOR_RED "!" COLOR_RESET);
