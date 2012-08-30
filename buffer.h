@@ -34,16 +34,17 @@ enum esc_state {
 /* }; */
 
 
-struct line {
+struct line_t {
     unsigned len;
     uint32_t *g;
-    struct line *up, *down;
+    struct line_t *next, *prev;
 };
 
 struct buffer {
     unsigned rows, cols;
     unsigned x, y;
-    struct line **lines;
+    struct line_t *lines;
+    struct line_t **mapped;
 
     struct {
         enum esc_state state;

@@ -56,7 +56,7 @@ void dump_buffer(buffer_t *buf)
     unsigned i, j;
     printf("\033[H\033[2J");
     for (i = 0; i < buf->rows; ++i) {
-        struct line *line = buf->lines[i];
+        struct line_t *line = buf->mapped[i];
 
         printf("|");
         for (j = 0; j < line->len; ++j) {

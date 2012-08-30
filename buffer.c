@@ -33,9 +33,56 @@ static const struct esc_data_t Table[ESC_INVALID] = {
 };
 
 
-buffer_t *buffer_new(unsigned rows, unsigned cols)
+static struct line_t *alloc_line(unsigned len)
+{
+    struct line_t *line = malloc(sizeof(struct line_t));
+    line->len = len;
+    line->g = calloc(len, sizeof(uint32_t));
+    line->next = line->prev = NULL;
+    return line;
+}
+
+static void map_scrollbuffer(struct line_t *map[], struct line_t *buf, unsigned size)
 {
     unsigned i;
+
+    for (i = size; i > 0; --i) {
+        map[i - 1] = buf->prev;
+        buf = buf->prev;
+    }
+}
+
+static void rotate_map(struct line_t *map[], unsigned size)
+{
+    unsigned i;
+
+    for (i = 0; i < size; ++i)
+        map[i] = map[i]->next;
+}
+
+static struct line_t *alloc_scrollbuffer(unsigned lines, unsigned len)
+{
+    struct line_t *head = NULL;
+
+    while (lines--) {
+        struct line_t *line = alloc_line(len);
+
+        if (head == NULL)
+            head = line;
+        else {
+            head->prev->next = line;
+            line->prev = head->prev;
+        }
+
+        head->prev = line;
+    }
+
+    head->prev->next = head;
+    return head;
+}
+
+buffer_t *buffer_new(unsigned rows, unsigned cols)
+{
     buffer_t *buf = malloc(sizeof(buffer_t));
 
     buf->rows = rows;
@@ -48,27 +95,21 @@ buffer_t *buffer_new(unsigned rows, unsigned cols)
     buf->esc.mode = 0;
     buf->esc.narg = 0;
 
-    buf->lines = malloc(sizeof(struct line *) * rows);
-
-    for (i = 0; i < rows; ++i) {
-        struct line *line = malloc(sizeof(struct line));
-
-        line->up = NULL; /* TODO */
-        line->down = NULL; /* TODO */
-        line->len = cols;
-        line->g = calloc(cols, sizeof(uint32_t));
-
-        buf->lines[i] = line;
-    }
+    buf->mapped = calloc(rows, sizeof(struct line_t *));
+    buf->lines = alloc_scrollbuffer(rows + 100, cols);
+    map_scrollbuffer(buf->mapped, buf->lines, rows);
 
     return buf;
 }
 
 void buffer_newline(buffer_t *buf)
 {
-    /* TODO: scroll */
     buf->x = 0;
-    buf->y = LIMIT(buf->y + 1, buf->rows - 1);
+    ++buf->y;
+    if (buf->y == buf->rows) {
+        rotate_map(buf->mapped, buf->rows);
+        --buf->y;
+    }
 }
 
 static enum esc_state esc_feed(buffer_t *b, char c)
@@ -143,7 +184,7 @@ void buffer_write(buffer_t *buf, const char *msg, size_t len)
             /* TODO */
             break;
         default:
-            buf->lines[buf->y]->g[buf->x] = buf->u.c;
+            buf->mapped[buf->y]->g[buf->x] = buf->u.c;
             if (++buf->x > buf->cols - 1)
                 buffer_newline(buf);
         }
