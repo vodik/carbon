@@ -14,6 +14,7 @@
 		((_x > _high) ? _high : ((_x < _low) ? _low : _x)); \
 	})
 
+#define TAB  8
 #define ESC  033
 #define CSI  '['
 
@@ -26,12 +27,12 @@ enum esc_type {
 };
 
 struct esc_data_t {
-    enum esc_state (*feed)(buffer_t *, char);
+    enum esc_state (*feed)(struct esc_t *, char);
     void (*apply)(buffer_t *);
 };
 
-static enum esc_state esc_feedCSI(buffer_t *e, char c);
-static void esc_applyCSI(buffer_t *e);
+static enum esc_state esc_feedCSI(struct esc_t *esc, char c);
+static void esc_applyCSI(buffer_t *esc);
 
 static const struct esc_data_t Table[ESC_INVALID] = {
     [ESC_CSI] = { esc_feedCSI, esc_applyCSI }
@@ -94,7 +95,7 @@ buffer_t *buffer_new(unsigned rows, unsigned cols)
     buf->cols = cols;
     buf->x = buf->y = 0;
 
-    memset(&buf->u,    0, sizeof(buf->u));
+    memset(&buf->utf,  0, sizeof(buf->utf));
     memset(&buf->esc,  0, sizeof(buf->esc));
     memset(&buf->attr, 0, sizeof(buf->attr));
 
@@ -117,37 +118,45 @@ void buffer_newline(buffer_t *buf)
 
 static enum esc_state esc_feed(buffer_t *b, char c)
 {
+    const struct esc_data_t *op = NULL;
+    struct esc_t *esc = &b->esc;
+
     switch (b->esc.state) {
     case ESC_START:
         switch (c) {
         case CSI:
             printf("CSI\n");
-            b->esc.op = &Table[ESC_CSI];
+            op = &Table[ESC_CSI];
             break;
         default:
             break;
         }
-        b->esc.narg = 0;
-        b->esc.state = b->esc.op ? ESC_EXPECT : ESC_WAITING;
+
+        if (op) {
+            memset(esc, 0, sizeof(struct esc_t));
+            esc->op = op;
+            esc->state = ESC_EXPECT;
+        } else
+            esc->state = ESC_WAITING;
+
         break;
     case ESC_EXPECT:
-        b->esc.state = b->esc.op->feed(b, c);
+        esc->state = esc->op->feed(esc, c);
     default:
         break;
     }
 
     switch (b->esc.state) {
         case ESC_ACCEPT:
-            b->esc.op->apply(b);
+            esc->op->apply(b);
         case ESC_REJECT:
-            b->esc.state = ESC_WAITING;
-            break;
+            esc->state = ESC_WAITING;
         default:
             break;
     }
 
-    printf("esc state: %d\n", b->esc.state);
-    return b->esc.state;
+    printf("esc state: %d\n", esc->state);
+    return esc->state;
 }
 
 void buffer_move(buffer_t *buf, unsigned x, unsigned y)
@@ -160,7 +169,7 @@ void buffer_move(buffer_t *buf, unsigned x, unsigned y)
 
 void buffer_tab(buffer_t *buf)
 {
-    unsigned spaces = 8 - buf->x % 8;
+    unsigned spaces = TAB - buf->x % TAB;
     buffer_move(buf, buf->x + spaces, buf->y);
 }
 
@@ -175,7 +184,6 @@ void buffer_write(buffer_t *buf, const char *msg, size_t len)
         /* TODO: shitty hacky order */
         if (c == ESC && buf->esc.state == ESC_WAITING) {
             printf("WE FOUND SOMETHING ESCAPED!\n");
-            memset(&buf->esc,  0, sizeof(buf->esc));
             buf->esc.state = ESC_START;
             continue;
         }
@@ -186,12 +194,12 @@ void buffer_write(buffer_t *buf, const char *msg, size_t len)
             continue;
         }
 
-        state = utf8_feed(&buf->u, msg[i]);
+        state = utf8_feed(&buf->utf, msg[i]);
 
         if (state != UTF8_ACCEPT)
             continue;
 
-        switch (buf->u.c) {
+        switch (buf->utf.c) {
         case '\n':
             buffer_newline(buf);
             break;
@@ -202,7 +210,7 @@ void buffer_write(buffer_t *buf, const char *msg, size_t len)
             buffer_tab(buf);
             break;
         default:
-            buf->mapped[buf->y]->cell[buf->x].cp   = buf->u.c;
+            buf->mapped[buf->y]->cell[buf->x].cp   = buf->utf.c;
             buf->mapped[buf->y]->cell[buf->x].attr = buf->attr;
             if (++buf->x > buf->cols - 1)
                 buffer_newline(buf);
@@ -210,18 +218,18 @@ void buffer_write(buffer_t *buf, const char *msg, size_t len)
     }
 }
 
-static enum esc_state esc_feedCSI(buffer_t *b, char c)
+static enum esc_state esc_feedCSI(struct esc_t *esc, char c)
 {
     printf("CSI ESCAPE PARSING\n");
     if (isdigit(c)) {
-        b->esc.args[b->esc.narg] *= 10;
-        b->esc.args[b->esc.narg] += c - '0';
+        esc->args[esc->narg] *= 10;
+        esc->args[esc->narg] += c - '0';
         return ESC_EXPECT;
     } else if (c == ';') {
-        ++b->esc.narg;
+        ++esc->narg;
         return ESC_EXPECT;
     } else if (0x40 <= c && c <= 0x7E) {
-        b->esc.mode = c;
+        esc->mode = c;
         return ESC_ACCEPT;
     }
     printf("CSI FAILED\n");

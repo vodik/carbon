@@ -39,6 +39,15 @@ struct line_t {
     struct line_t *next, *prev;
 };
 
+struct esc_t {
+    enum esc_state state;
+    const struct esc_data_t *op;
+
+    char mode;
+    int narg;
+    int args[ESC_MAX];
+};
+
 struct buffer {
     unsigned rows, cols;
     unsigned x, y;
@@ -47,15 +56,8 @@ struct buffer {
 
     struct font_attr attr;
 
-    struct {
-        enum esc_state state;
-        const struct esc_data_t *op;
-
-        char mode;
-        int narg;
-        int args[ESC_MAX];
-    } esc;
-    struct utf8_t u;
+    struct esc_t esc;
+    struct utf8_t utf;
 };
 
 buffer_t *buffer_new(unsigned rows, unsigned cols);
