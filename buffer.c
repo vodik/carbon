@@ -241,6 +241,8 @@ static enum esc_state esc_feedCSI(struct esc_t *esc, char c)
 static void esc_applyCSI(buffer_t *b)
 {
     unsigned temp;
+    struct esc_t *esc = &b->esc;
+
     printf("TRYING TO ACCEPT THIS\n");
 
     switch(b->esc.mode) {
@@ -304,12 +306,11 @@ static void esc_applyCSI(buffer_t *b)
     /* set terminal attributes [] */
     case 'm':
         /* HACK TASTIC */
-        temp = b->esc.args[b->esc.narg];
-        printf(COLOR_RED "COLOR: %d (@ %d)\n" COLOR_RESET, temp, b->esc.narg);
-        temp -= 30;
-        b->attr.fg = temp;
-        if (b->esc.narg)
-            b->attr.bold = b->esc.args[b->esc.narg - 1];
+        temp = esc->args[esc->narg];
+        printf(COLOR_RED "COLOR: %d (@ %d)\n" COLOR_RESET, temp, esc->narg);
+        b->attr.fg = temp -= 30;
+        if (esc->narg)
+            b->attr.bold = esc->args[esc->narg - 1];
         break;
     /* ??? */
     case 'r':
