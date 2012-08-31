@@ -14,7 +14,7 @@ enum utf8_state {
 
 struct utf8_t {
     enum utf8_state state;
-    uint32_t c;
+    uint32_t cp;
 };
 
 enum utf8_state utf8_feed(struct utf8_t *u, char ci);

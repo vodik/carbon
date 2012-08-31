@@ -199,7 +199,7 @@ void buffer_write(buffer_t *buf, const char *msg, size_t len)
         if (state != UTF8_ACCEPT)
             continue;
 
-        switch (buf->utf.c) {
+        switch (buf->utf.cp) {
         case '\n':
             buffer_newline(buf);
             break;
@@ -210,7 +210,7 @@ void buffer_write(buffer_t *buf, const char *msg, size_t len)
             buffer_tab(buf);
             break;
         default:
-            buf->mapped[buf->y]->cell[buf->x].cp   = buf->utf.c;
+            buf->mapped[buf->y]->cell[buf->x].cp   = buf->utf.cp;
             buf->mapped[buf->y]->cell[buf->x].attr = buf->attr;
             if (++buf->x > buf->cols - 1)
                 buffer_newline(buf);
@@ -242,6 +242,7 @@ static void esc_applyCSI(buffer_t *b)
 {
     unsigned temp;
     printf("TRYING TO ACCEPT THIS\n");
+
     switch(b->esc.mode) {
     /* insert [0] blank characters */
     case '@':
