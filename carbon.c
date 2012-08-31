@@ -135,8 +135,8 @@ void run(void)
             char buf[BUFSIZ];
             int ret;
 
-            if (events[i].data.ptr == 0) {
-                ret = read(0, buf, BUFSIZ);
+            if (events[i].data.ptr == STDIN_FILENO) {
+                ret = read(STDIN_FILENO, buf, BUFSIZ);
                 if (ret == -1) {
                     perror("read");
                     exit(EXIT_FAILURE);
