@@ -248,7 +248,6 @@ static enum esc_state esc_feedCSI(struct esc_t *esc, char c)
 static void esc_applyCSI(buffer_t *b)
 {
     unsigned temp;
-    int value;
     struct esc_t *esc = &b->esc;
 
     printf("TRYING TO ACCEPT THIS\n");
@@ -295,14 +294,14 @@ static void esc_applyCSI(buffer_t *b)
     case 'G':
     case '`':
         DEFAULT(esc->args[0], 1);
-        buffer_move(buf, esc->args[0] - 1, b->y);
+        buffer_move(b, esc->args[0] - 1, b->y);
         break;
     /* CUP: move to row [0] column [1] */
     case 'H':
     case 'f':
         DEFAULT(esc->args[0], 1);
         DEFAULT(esc->args[1], 1);
-        buffer_move(buf, esc->args[1] - 1, esc->args[0] - 1);
+        buffer_move(b, esc->args[1] - 1, esc->args[0] - 1);
         break;
     /* clear screen */
     case 'J':
