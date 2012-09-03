@@ -262,42 +262,47 @@ static void esc_applyCSI(buffer_t *b)
     /* CUU: move cursor up [0] */
     case 'A':
     case 'e':
-        value = DEFAULT(esc->args[0], 1);
-        buffer_move(b, b->x, b->y - value);
+        DEFAULT(esc->args[0], 1);
+        buffer_move(b, b->x, b->y - esc->args[0]);
         break;
     /* CUD: move cursor down [0] */
     case 'B':
-        value = DEFAULT(esc->args[0], 1);
-        buffer_move(b, b->x, b->y + value);
+        DEFAULT(esc->args[0], 1);
+        buffer_move(b, b->x, b->y + esc->args[0]);
         break;
     /* CUF: move cursor right [0] */
     case 'C':
     case 'a':
-        value = DEFAULT(esc->args[0], 1);
-        buffer_move(b, b->x + value, b->y);
+        DEFAULT(esc->args[0], 1);
+        buffer_move(b, b->x + esc->args[0], b->y);
         break;
     /* CUB: move cursor left [0] */
     case 'D':
-        value = DEFAULT(esc->args[0], 1);
-        buffer_move(b, b->x - value, b->y);
+        DEFAULT(esc->args[0], 1);
+        buffer_move(b, b->x - esc->args[0], b->y);
         break;
     /* CNL: move cursor down [0] and to start of line */
     case 'E':
-        value = DEFAULT(esc->args[0], 1);
-        buffer_move(b, 0, b->y + value);
+        DEFAULT(esc->args[0], 1);
+        buffer_move(b, 0, b->y + esc->args[0]);
         break;
     /* CPL: move cursor up [0] and to start of line */
     case 'F':
-        value = DEFAULT(esc->args[0], 1);
-        buffer_move(b, 0, b->y - value);
+        DEFAULT(esc->args[0], 1);
+        buffer_move(b, 0, b->y - esc->args[0]);
         break;
-    /* more to column [0] */
+    /* CHA: more to column [0] */
     case 'G':
     case '`':
+        DEFAULT(esc->args[0], 1);
+        buffer_move(buf, esc->args[0] - 1, b->y);
         break;
-    /* move to row [0] column [1] */
+    /* CUP: move to row [0] column [1] */
     case 'H':
     case 'f':
+        DEFAULT(esc->args[0], 1);
+        DEFAULT(esc->args[1], 1);
+        buffer_move(buf, esc->args[1] - 1, esc->args[0] - 1);
         break;
     /* clear screen */
     case 'J':
