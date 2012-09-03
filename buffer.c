@@ -18,7 +18,7 @@
     __extension__ ({ \
         typeof(x) _x = (x); \
         typeof(def) _def = (def); \
-        (x) = _x ? _x : _def; \
+        _x ? _x : _def; \
     })
 
 #define TAB  8
@@ -253,6 +253,7 @@ static enum esc_state esc_feedCSI(struct esc_t *esc, char c)
 static void esc_applyCSI(buffer_t *b)
 {
     unsigned temp;
+    int value;
     struct esc_t *esc = &b->esc;
 
     printf("TRYING TO ACCEPT THIS\n");
@@ -266,20 +267,24 @@ static void esc_applyCSI(buffer_t *b)
     /* CUU: move cursor up [0] */
     case 'A':
     case 'e':
-        DEFAULT(esc->args[0], 1);
-        buffer_shift(b, 0, -esc->args[0]);
+        value = DEFAULT(esc->args[0], 1);
+        buffer_shift(b, 0, -value);
         break;
     /* CUD: move cursor down [0] */
     case 'B':
-        DEFAULT(esc->args[0], 1);
-        buffer_shift(b, 0, esc->args[0]);
+        value = DEFAULT(esc->args[0], 1);
+        buffer_shift(b, 0, value);
         break;
-    /* move cursor right [0] */
+    /* CUF: move cursor right [0] */
     case 'C':
     case 'a':
+        value = DEFAULT(esc->args[0], 1);
+        buffer_shift(b, value, 0);
         break;
-    /* move cursor left [0] */
+    /* CUB: move cursor left [0] */
     case 'D':
+        value = DEFAULT(esc->args[0], 1);
+        buffer_shift(b, -value, 0);
         break;
     /* move cursor down [0] and to start of line */
     case 'E':
