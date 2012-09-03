@@ -7,12 +7,19 @@
 #include "unicode.h"
 
 #define CLAMP(x, low, high) \
-	__extension__ ({ \
-		typeof(x) _x = (x); \
-		typeof(low) _low = (low); \
-		typeof(high) _high = (high); \
-		((_x > _high) ? _high : ((_x < _low) ? _low : _x)); \
-	})
+    __extension__ ({ \
+        typeof(x) _x = (x); \
+        typeof(low) _low = (low); \
+        typeof(high) _high = (high); \
+        ((_x > _high) ? _high : ((_x < _low) ? _low : _x)); \
+    })
+
+#define DEFAULT(x, def) \
+    __extension__ ({ \
+        typeof(x) _x = (x); \
+        typeof(def) _def = (def); \
+        (x) = _x ? _x : _def; \
+    })
 
 #define TAB  8
 #define ESC  033
@@ -162,15 +169,20 @@ static enum esc_state esc_feed(buffer_t *b, char c)
 void buffer_move(buffer_t *buf, unsigned x, unsigned y)
 {
     CLAMP(x, 0u, buf->cols - 1);
-	CLAMP(y, 0u, buf->rows - 1);
-	buf->x = x;
-	buf->y = y;
+    CLAMP(y, 0u, buf->rows - 1);
+    buf->x = x;
+    buf->y = y;
+}
+
+void buffer_shift(buffer_t *buf, int x, int y)
+{
+    buffer_move(buf, buf->x + x, buf->y + y);
 }
 
 void buffer_tab(buffer_t *buf)
 {
     unsigned spaces = TAB - buf->x % TAB;
-    buffer_move(buf, buf->x + spaces, buf->y);
+    buffer_shift(buf, spaces, 0);
 }
 
 void buffer_write(buffer_t *buf, const char *msg, size_t len)
@@ -251,12 +263,16 @@ static void esc_applyCSI(buffer_t *b)
         /* if (bufimpl->insertblank) */
         /*     bufimpl->insertblank(buf, e->args[0] ? e->args[0] : 1); */
         break;
-    /* move cursor up [0] */
+    /* CUU: move cursor up [0] */
     case 'A':
     case 'e':
+        DEFAULT(esc->args[0], 1);
+        buffer_shift(b, 0, -esc->args[0]);
         break;
-    /* move cursor down [0] */
+    /* CUD: move cursor down [0] */
     case 'B':
+        DEFAULT(esc->args[0], 1);
+        buffer_shift(b, 0, esc->args[0]);
         break;
     /* move cursor right [0] */
     case 'C':
