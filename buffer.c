@@ -174,15 +174,10 @@ void buffer_move(buffer_t *buf, unsigned x, unsigned y)
     buf->y = y;
 }
 
-void buffer_shift(buffer_t *buf, int x, int y)
-{
-    buffer_move(buf, buf->x + x, buf->y + y);
-}
-
 void buffer_tab(buffer_t *buf)
 {
     unsigned spaces = TAB - buf->x % TAB;
-    buffer_shift(buf, spaces, 0);
+    buffer_move(buf, buf->x + spaces, buf->y);
 }
 
 void buffer_write(buffer_t *buf, const char *msg, size_t len)
@@ -268,29 +263,33 @@ static void esc_applyCSI(buffer_t *b)
     case 'A':
     case 'e':
         value = DEFAULT(esc->args[0], 1);
-        buffer_shift(b, 0, -value);
+        buffer_move(b, b->x, b->y - value);
         break;
     /* CUD: move cursor down [0] */
     case 'B':
         value = DEFAULT(esc->args[0], 1);
-        buffer_shift(b, 0, value);
+        buffer_move(b, b->x, b->y + value);
         break;
     /* CUF: move cursor right [0] */
     case 'C':
     case 'a':
         value = DEFAULT(esc->args[0], 1);
-        buffer_shift(b, value, 0);
+        buffer_move(b, b->x + value, b->y);
         break;
     /* CUB: move cursor left [0] */
     case 'D':
         value = DEFAULT(esc->args[0], 1);
-        buffer_shift(b, -value, 0);
+        buffer_move(b, b->x - value, b->y);
         break;
-    /* move cursor down [0] and to start of line */
+    /* CNL: move cursor down [0] and to start of line */
     case 'E':
+        value = DEFAULT(esc->args[0], 1);
+        buffer_move(b, 0, b->y + value);
         break;
-    /* move cursor up [0] and to start of line */
+    /* CPL: move cursor up [0] and to start of line */
     case 'F':
+        value = DEFAULT(esc->args[0], 1);
+        buffer_move(b, 0, b->y - value);
         break;
     /* more to column [0] */
     case 'G':
