@@ -14,19 +14,14 @@
         ((_x > _high) ? _high : ((_x < _low) ? _low : _x)); \
     })
 
-#define DEFAULT(x, def) \
-    __extension__ ({ \
-        typeof(x) _x = (x); \
-        typeof(def) _def = (def); \
-        _x ? _x : _def; \
-    })
-
 #define TAB  8
 #define ESC  033
 #define CSI  '['
 
 #define COLOR_RESET    "\033[0m"
 #define COLOR_RED      "\033[31m"
+
+static inline void default_int(int *v, int def) { *v = *v ? *v : def; }
 
 enum esc_type {
     ESC_CSI,
@@ -168,8 +163,8 @@ static enum esc_state esc_feed(buffer_t *b, char c)
 
 void buffer_move(buffer_t *buf, unsigned x, unsigned y)
 {
-    CLAMP(x, 0u, buf->cols - 1);
-    CLAMP(y, 0u, buf->rows - 1);
+    x = CLAMP(x, 0u, buf->cols - 1);
+    y = CLAMP(y, 0u, buf->rows - 1);
     buf->x = x;
     buf->y = y;
 }
@@ -261,46 +256,46 @@ static void esc_applyCSI(buffer_t *b)
     /* CUU: move cursor up [0] */
     case 'A':
     case 'e':
-        DEFAULT(esc->args[0], 1);
+        default_int(&esc->args[0], 1);
         buffer_move(b, b->x, b->y - esc->args[0]);
         break;
     /* CUD: move cursor down [0] */
     case 'B':
-        DEFAULT(esc->args[0], 1);
+        default_int(&esc->args[0], 1);
         buffer_move(b, b->x, b->y + esc->args[0]);
         break;
     /* CUF: move cursor right [0] */
     case 'C':
     case 'a':
-        DEFAULT(esc->args[0], 1);
+        default_int(&esc->args[0], 1);
         buffer_move(b, b->x + esc->args[0], b->y);
         break;
     /* CUB: move cursor left [0] */
     case 'D':
-        DEFAULT(esc->args[0], 1);
+        default_int(&esc->args[0], 1);
         buffer_move(b, b->x - esc->args[0], b->y);
         break;
     /* CNL: move cursor down [0] and to start of line */
     case 'E':
-        DEFAULT(esc->args[0], 1);
+        default_int(&esc->args[0], 1);
         buffer_move(b, 0, b->y + esc->args[0]);
         break;
     /* CPL: move cursor up [0] and to start of line */
     case 'F':
-        DEFAULT(esc->args[0], 1);
+        default_int(&esc->args[0], 1);
         buffer_move(b, 0, b->y - esc->args[0]);
         break;
     /* CHA: more to column [0] */
     case 'G':
     case '`':
-        DEFAULT(esc->args[0], 1);
+        default_int(&esc->args[0], 1);
         buffer_move(b, esc->args[0] - 1, b->y);
         break;
     /* CUP: move to row [0] column [1] */
     case 'H':
     case 'f':
-        DEFAULT(esc->args[0], 1);
-        DEFAULT(esc->args[1], 1);
+        default_int(&esc->args[0], 1);
+        default_int(&esc->args[1], 1);
         buffer_move(b, esc->args[1] - 1, esc->args[0] - 1);
         break;
     /* clear screen */
