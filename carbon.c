@@ -142,7 +142,6 @@ void run(void)
                     exit(EXIT_FAILURE);
                 }
 
-                buf[ret++] = '\r';
                 buf[ret] = '\0';
                 tty_write(tty, buf, ret);
             } else {
