@@ -10,6 +10,7 @@ CFLAGS := -std=gnu99 \
 LDFLAGS := ${shell pkg-config --libs cairo} ${LDFLAGS}
 
 ${OUT}: ${OBJ}
+	${CC} -o $@ $^ ${LDFLAGS}
 
 clean:
 	${RM} ${OUT} ${OBJ}
