@@ -85,8 +85,12 @@ static struct line_t *alloc_scrollbuffer(unsigned lines, unsigned len)
         head->prev = line;
     }
 
-    head->prev->next = head;
-    return head;
+    if (head) {
+        head->prev->next = head;
+        return head;
+    }
+
+    return NULL;
 }
 
 buffer_t *buffer_new(unsigned rows, unsigned cols)
