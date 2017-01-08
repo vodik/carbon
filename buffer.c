@@ -112,7 +112,7 @@ buffer_t *buffer_new(unsigned rows, unsigned cols)
     return buf;
 }
 
-void buffer_newline(buffer_t *buf)
+static void buffer_newline(buffer_t *buf)
 {
     buf->x = 0;
 
@@ -165,7 +165,7 @@ static enum esc_state esc_feed(buffer_t *b, char c)
     return esc->state;
 }
 
-void buffer_move(buffer_t *buf, unsigned x, unsigned y)
+static void buffer_move(buffer_t *buf, unsigned x, unsigned y)
 {
     x = CLAMP(x, 0u, buf->cols - 1);
     y = CLAMP(y, 0u, buf->rows - 1);
@@ -173,7 +173,7 @@ void buffer_move(buffer_t *buf, unsigned x, unsigned y)
     buf->y = y;
 }
 
-void buffer_tab(buffer_t *buf)
+static void buffer_tab(buffer_t *buf)
 {
     unsigned spaces = TAB - buf->x % TAB;
     buffer_move(buf, buf->x + spaces, buf->y);

@@ -21,10 +21,6 @@ int epfd;
 tty_t *tty;
 buffer_t *buff;
 
-static void sigchld();
-static void shell(void);
-static void run(void);
-
 #define COLOR_RESET    "\033[0m"
 #define COLOR_BOLD     "\033[1m"
 #define COLOR_RED      "\033[31m"
@@ -43,8 +39,10 @@ static void run(void);
 		((_x > _high) ? _high : ((_x < _low) ? _low : _x)); \
 	})
 
-void sigchld()
+static void sigchld(int signal)
 {
+    (void)signal;
+
     int stat = 0;
     if (waitpid(tty_pid(tty), &stat, 0) == -1) {
         perror("waitpid");
@@ -54,7 +52,7 @@ void sigchld()
     exit(WIFEXITED(stat) ? WEXITSTATUS(stat) : EXIT_FAILURE);
 }
 
-void shell(void)
+static void shell(void)
 {
     putenv("TERM=dumb");
 
@@ -62,7 +60,7 @@ void shell(void)
     execv(args[0], args);
 }
 
-void dump_cell(struct cell_t *cell)
+static void dump_cell(struct cell_t *cell)
 {
     char c = (char)cell->cp;
 
@@ -99,7 +97,7 @@ void dump_cell(struct cell_t *cell)
         printf("%c", c);
 }
 
-void dump_buffer(buffer_t *buf)
+static void dump_buffer(buffer_t *buf)
 {
     unsigned i, j;
     printf("\033[H\033[2J");
@@ -124,7 +122,7 @@ void dump_buffer(buffer_t *buf)
     printf("> ");
 }
 
-void run(void)
+static void run(void)
 {
     struct epoll_event events[10];
 
@@ -161,7 +159,7 @@ void run(void)
     }
 }
 
-void title(const char *t)
+static void title(const char *t)
 {
     (void)t;
 }
