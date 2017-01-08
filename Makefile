@@ -1,18 +1,15 @@
-OUT = carbon
-SRC = ${wildcard *.c}
-OBJ = ${SRC:.c=.o}
-
-CFLAGS := -std=gnu99 \
+CFLAGS := -std=gnu11 -g \
 	-Wall -Wextra -pedantic \
-	${shell pkg-config --cflags cairo} \
-	${CFLAGS}
+	-Wshadow -Wpointer-arith -Wcast-qual -Wstrict-prototypes -Wmissing-prototypes \
+	-Wno-missing-field-initializers \
+	$(shell pkg-config --cflags cairo) \
+	$(CFLAGS)
 
-LDFLAGS := ${shell pkg-config --libs cairo} ${LDFLAGS}
+LDLIBS := $(shell pkg-config --libs cairo)
 
-${OUT}: ${OBJ}
-	${CC} -o $@ $^ ${LDFLAGS}
+carbon: buffer.o carbon.o term.o tty.o unicode.o
 
 clean:
-	${RM} ${OUT} ${OBJ}
+	$(RM) carbon *.o
 
-.PHONY: clean install uninstall
+.PHONY: clean
