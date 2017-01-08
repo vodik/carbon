@@ -330,10 +330,8 @@ static void esc_applyCSI(buffer_t *b)
     case 'm':
         /* HACK TASTIC */
         temp = esc->args[esc->narg];
-        printf(COLOR_RED "COLOR: %d (@ %d)\n" COLOR_RESET, temp, esc->narg);
         b->attr.fg = temp -= 30;
-        if (esc->narg)
-            b->attr.bold = esc->args[esc->narg - 1];
+        b->attr.bold = esc->narg ? esc->args[esc->narg - 1] : 0;
         break;
     /* ??? */
     case 'r':
